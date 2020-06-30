@@ -1,6 +1,6 @@
 # NOTE: All indented lines are indented with a tab character.
 
-DFLAGS = -g
+DFLAGS = -g -G -lineinfo
 PROGS= VectorVectorMultiplication
 
 all: hw1

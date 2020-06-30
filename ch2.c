@@ -33,6 +33,7 @@ GPU
 
 CUDA (Compute Unified Device Architecture) C
     - an extension (API) to the popular C programming language
+    - High Performance, Most Flexibility
 
 For CUDA Computing System consist of
     1. Host: CPU (such as Intel architecture)
@@ -46,6 +47,8 @@ CUDA program = C source + CUDA keyword
              = (host code) + (device code "called kernel" )
 
     - A kernel function is executed by all threads during a parallel phase
+        - Serial Code in host
+        - Parallel Kernel code in device
     - CUDA program is SPMD (single program, multiple data)
     - when launch a kernel
         - generate a grid (an array of thread blocks)           "only 1 grid??"
@@ -54,15 +57,44 @@ CUDA program = C source + CUDA keyword
         - each thread block contain up to 1024 threads (should be multiples of 32 for efficiency)
         - all thread run the same kernel code
         - Threads in different blocks do not interact
+        - Each block can execute in any order relative to other blocks!
 
     - Need be compiled by CUDA C compler: nvcc (NVIDIA C Compiler)
+
+
+
     - To compile:
+        - nvcc combine 2 compiler (nvcc + gcc)
 
-    nvcc myfile.cu
+        nvcc -g -G myfile.cu
 
+        -g: host debugging symbols
+        -G: device debugging symbols
+        -lineinfo: Include line information with symbols
+        -x: treat all input file as .cu files
+        -Xcompiler: forward flag to gcc compiler 
+            e.g. -Xcompiler -fopenmp
+    
     - To run:
 
-    ./a.out
+        ./a.out
+
+    - To debug:
+
+        cuda-gdb --args ./a.out
+
+        (cuda-gdb) b main                   //set break point at main
+        (cuda-gdb) r                        //run application
+        (cuda-gdb) l                        //print line context
+        (cuda-gdb) b foo                    //break at kernel foo
+        (cuda-gdb) c                        //continue
+        (cuda-gdb) d                        //delete all break points
+        (cuda-gdb) r                        //run from the beginning
+        (cuda-gdb) cuda thread              //print current thread
+        (cuda-gdb) cuda thread 10           //switch to thread 10
+        (cuda-gdb) cuda block               //print current block
+        (cuda-gdb) cuda block 1             //switch to block 1
+        (cuda-gdb) set cuda memcheck on     //turn on cuda memcheck
 
 
 

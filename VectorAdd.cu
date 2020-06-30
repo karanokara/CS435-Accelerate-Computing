@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <cuda.h>
+#include <cuda.h>       // need cuda library
 #include <stdlib.h>
 #include <time.h>
 #include <driver_types.h>
@@ -9,9 +9,10 @@
 // Compute vector sum C = A+B
 // Each thread performs one pair-wise addition
 __global__ void add(int *a,int *b, int *c) {
-    // blockDim.x - # of thread in a block
+    // gridDim.x    # of block in X coor in a grid   == "B" in main() 
+    // blockDim.x - # of thread in X corr in a block == "T" in main()
+    // blockIdx.x - the block id in a grid, range in 0 ~ gridDim.x-1
     // threadIdx.x - thread id in a block
-    // blockIdx.x - the block id in a grid
     
     // Each thread uses data_value index to access d_A, d_B, and d_C
     // Different threads will see different values of threadIdx.x, blockIdx.x, blockDim.x
@@ -27,6 +28,7 @@ __global__ void add(int *a,int *b, int *c) {
 }
 
 int allocate_device_mem(int **dev) {
+    //                                               4       
     cudaError_t err = cudaMalloc((void**)dev, N * sizeof(int));
     
     if (err != cudaSuccess) {
@@ -41,7 +43,9 @@ int allocate_device_mem(int **dev) {
 // print out the capability number of the device being used
 void print_device_capability() {
     int deviceCount;
-    cudaGetDeviceCount(&deviceCount);
+
+    // get # of available CUDA devices (# of GPU) in system
+    cudaGetDeviceCount(&deviceCount);   
 
     printf("\nDevices compute capability:\n");
 
@@ -50,14 +54,21 @@ void print_device_capability() {
         cudaDeviceProp deviceProp;
         cudaGetDeviceProperties(&deviceProp, device);
         printf("Device(%d) has compute capability: major(%d) minor(%d).\n", device, deviceProp.major, deviceProp.minor);
-        printf("Device Max # thread per block: %d\n", deviceProp.maxThreadsPerBlock);
+        printf("Max # thread per block in this device: %d \n", deviceProp.maxThreadsPerBlock);
+        printf("# of SMs in this device: %d \n", deviceProp.multiProcessorCount);
+        printf("Clock Frequency of this device: %d \n", deviceProp.clockRate);
+        printf("Max # of threads in dimension: %d %d %d \n", deviceProp.maxGridSize[0], deviceProp.maxGridSize[1], deviceProp.maxGridSize[2]);
+        printf("Warp size of this device: %d threads/warp \n", deviceProp.warpSize);
+
     }
 }
 
 int main(int argc, char *argv[])  {
 	int T = 10, B = 1;            // threads per block and blocks per grid
 	int a[N],b[N],c[N];
-	int *dev_a, *dev_b, *dev_c;
+    int *dev_a, *dev_b, *dev_c;
+    
+    print_device_capability();
 
 	printf("Size of array = %d\n", N);
 	do {
@@ -93,9 +104,10 @@ int main(int argc, char *argv[])  {
 		b[i] = i*1;
 	}
 
-	cudaMemcpy(dev_a, a , N*sizeof(int),cudaMemcpyHostToDevice);
-	cudaMemcpy(dev_b, b , N*sizeof(int),cudaMemcpyHostToDevice);
-	cudaMemcpy(dev_c, c , N*sizeof(int),cudaMemcpyHostToDevice);
+    // cudamemcpy(p_dest, p_source, #byte, Direction)
+	cudaMemcpy(dev_a, a, N*sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(dev_b, b, N*sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(dev_c, c, N*sizeof(int), cudaMemcpyHostToDevice);
 
 	cudaEventCreate( &start );     // instrument code to measure start time
 	cudaEventCreate( &stop );
@@ -105,14 +117,14 @@ int main(int argc, char *argv[])  {
     // Kernel launch code – the device performs the actual vector addition
     // here host code launches a kernel, it sets the config param
     // Execution configuration parameters: <<< # of thread block, # of thread each block >>>
-    add<<<B,T>>>(dev_a,dev_b,dev_c);
+    add<<< B, T >>>(dev_a, dev_b, dev_c);
     // #block = ceil("threads needed" / "threads per block GPU has")
-    // vecAddKernel<<<ceil(n/256.0), 256>>>(d_A, d_B, d_C, n);
+    // vecAddKernel<<< ceil(n/256.0), 256 >>>(d_A, d_B, d_C, n);
 
 
     // 3
     // copy C from the device memory
-	cudaMemcpy(c,dev_c,N*sizeof(int),cudaMemcpyDeviceToHost);
+	cudaMemcpy(c, dev_c, N*sizeof(int), cudaMemcpyDeviceToHost);
 
 	cudaEventRecord( stop, 0 );     // instrument code to measue end time
 	cudaEventSynchronize( stop );
@@ -124,10 +136,10 @@ int main(int argc, char *argv[])  {
 	}
 
     // Get grid (device) info
-    int device;
-    struct cudaDeviceProp props;
-    cudaGetDevice(&device);                 // get current working device index
-    cudaGetDeviceProperties(&props, device);
+    // int device;
+    // struct cudaDeviceProp props;
+    // cudaGetDevice(&device);                 // get current working device index
+    // cudaGetDeviceProperties(&props, device);
 
     // print out device properties
     printf("Device(%d) Property: major(%d) minor(%d) \n", device, props.major, props.minor ); 
@@ -136,7 +148,8 @@ int main(int argc, char *argv[])  {
 	printf("Time to calculate results: %f ms.\n", elapsed_time_ms);  // print out execution time
 
 
-	// Free device vectors
+    // Free device vectors
+    // cudaFree(pointer to freed obj)
 	cudaFree(dev_a);
 	cudaFree(dev_b);
 	cudaFree(dev_c);
