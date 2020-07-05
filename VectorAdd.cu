@@ -54,10 +54,12 @@ void print_device_capability() {
         cudaDeviceProp deviceProp;
         cudaGetDeviceProperties(&deviceProp, device);
         printf("Device(%d) has compute capability: major(%d) minor(%d).\n", device, deviceProp.major, deviceProp.minor);
-        printf("Max # thread per block in this device: %d \n", deviceProp.maxThreadsPerBlock);
+        printf("# of thread per block in this device: %d \n", deviceProp.maxThreadsPerBlock);
         printf("# of SMs in this device: %d \n", deviceProp.multiProcessorCount);
+        printf("# of blcok per SMs: Unknown \n");
+        printf("# of shared Mem per block: %d bytes\n", deviceProp.sharedMemPerBlock);
         printf("Clock Frequency of this device: %d \n", deviceProp.clockRate);
-        printf("Max # of threads in dimension: %d %d %d \n", deviceProp.maxGridSize[0], deviceProp.maxGridSize[1], deviceProp.maxGridSize[2]);
+        printf("# of threads in dimension: %d %d %d \n", deviceProp.maxGridSize[0], deviceProp.maxGridSize[1], deviceProp.maxGridSize[2]);
         printf("Warp size of this device: %d threads/warp \n", deviceProp.warpSize);
 
     }
@@ -104,6 +106,8 @@ int main(int argc, char *argv[])  {
 		b[i] = i*1;
 	}
 
+    // 2 
+    // copy data to device memory
     // cudamemcpy(p_dest, p_source, #byte, Direction)
 	cudaMemcpy(dev_a, a, N*sizeof(int), cudaMemcpyHostToDevice);
 	cudaMemcpy(dev_b, b, N*sizeof(int), cudaMemcpyHostToDevice);
@@ -113,7 +117,7 @@ int main(int argc, char *argv[])  {
 	cudaEventCreate( &stop );
 	cudaEventRecord( start, 0 );
 
-    // 2
+    // 3
     // Kernel launch code – the device performs the actual vector addition
     // here host code launches a kernel, it sets the config param
     // Execution configuration parameters: <<< # of thread block, # of thread each block >>>
@@ -122,8 +126,8 @@ int main(int argc, char *argv[])  {
     // vecAddKernel<<< ceil(n/256.0), 256 >>>(d_A, d_B, d_C, n);
 
 
-    // 3
-    // copy C from the device memory
+    // 4
+    // copy data from the device memory to host memory
 	cudaMemcpy(c, dev_c, N*sizeof(int), cudaMemcpyDeviceToHost);
 
 	cudaEventRecord( stop, 0 );     // instrument code to measue end time

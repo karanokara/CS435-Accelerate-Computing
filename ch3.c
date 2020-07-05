@@ -1,5 +1,7 @@
 /*
 
+Data-Parallel Execution Model
+
 
 CUDA built-in variables: gridDim, blockDim, blockIdx, and threadIdx
     - Their values are preinitialized by the CUDA runtime systems and can be referenced 

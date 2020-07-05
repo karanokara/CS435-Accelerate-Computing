@@ -1,7 +1,9 @@
 # NOTE: All indented lines are indented with a tab character.
+# -G: --device-debug (-G), including "-lineinfo"
+# -lineinfo
 
-DFLAGS = -g -G -lineinfo
-PROGS= VectorVectorMultiplication
+DFLAGS = -g -G 
+PROGS = VectorVectorMultiplication
 
 all: hw1
 
