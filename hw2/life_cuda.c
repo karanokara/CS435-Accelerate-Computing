@@ -21,6 +21,20 @@ const int offsets[8][2] = {
     {0, -1},
     {1, -1}};
 
+void measure_start(cudaEvent_t *start, cudaEvent_t *stop)
+{
+    cudaEventCreate(start);
+    cudaEventCreate(stop);
+    cudaEventRecord(*start, 0);
+}
+
+void measure_stop(cudaEvent_t *start, cudaEvent_t *stop, float *elapsed_time_ms)
+{
+    cudaEventRecord(*stop, 0); // instrument code to measue end time
+    cudaEventSynchronize(*stop);
+    cudaEventElapsedTime(elapsed_time_ms, *start, *stop);
+}
+
 // traditional host function (C style)
 int allocate_device_mem(int **dev_arr, int N)
 {
@@ -235,8 +249,13 @@ int main(int argc, const char *argv[])
 
     // --------------------- using CUDA memory ------------------------ //
 
+    float total_elapsed_time_ms = 0.0;
+
     while (many < iters)
     {
+        cudaEvent_t start, stop; // using cuda events to measure time
+        float elapsed_time_ms;   // which is applicable for asynchronous code also
+
         many++;
         if (out == 1)
             print_board(current, width, height);
@@ -245,21 +264,21 @@ int main(int argc, const char *argv[])
         // copy data to device memory
         cudaMemcpy(dev_current, current, board_size, cudaMemcpyHostToDevice);
 
+        // measure start time
+        measure_start(&start, &stop);
+
         // 3
         // Kernel launch
         kernel_step<<<dimGrid, dimBlock>>>(dev_current, dev_next, width, height);
 
-        //evaluate the `current` board, writing the next generation into `next`.
-        // step(current, next, width, height);
-
-        // Copy the next state, that step() just wrote into, current state
-        // memcpy(current, next, board_size);
+        // measure end time
+        measure_stop(&start, &stop, &elapsed_time_ms);
 
         // 4
         // copy data from the device memory to host memory
         cudaMemcpy(current, dev_next, board_size, cudaMemcpyDeviceToHost);
 
-        // copy the `next` to CPU and into `current` to be ready to repeat the process
+        total_elapsed_time_ms += elapsed_time_ms;
 
         // We sleep only because textual output is slow and the console needs
         // time to catch up. We don't sleep in the graphical X11 version.
@@ -268,6 +287,7 @@ int main(int argc, const char *argv[])
     }
 
     // calculate a mean time toward N iterations
+    printf("Mean time to calculate next generation of board: %f ms.\n", (total_elapsed_time_ms / iters)); // print out execution time
 
     return 0;
 }

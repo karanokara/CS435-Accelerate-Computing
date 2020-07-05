@@ -6,6 +6,20 @@
 
 #define N 4096         // size of array
 
+void measure_start(cudaEvent_t *start, cudaEvent_t *stop)
+{
+    cudaEventCreate(start);
+    cudaEventCreate(stop);
+    cudaEventRecord(*start, 0);
+}
+
+void measure_stop(cudaEvent_t *start, cudaEvent_t *stop, float *elapsed_time_ms)
+{
+    cudaEventRecord(*stop, 0); // instrument code to measue end time
+    cudaEventSynchronize(*stop);
+    cudaEventElapsedTime(elapsed_time_ms, *start, *stop);
+}
+
 // Compute vector sum C = A+B
 // Each thread performs one pair-wise addition
 __global__ void add(int *a,int *b, int *c) {
@@ -57,7 +71,7 @@ void print_device_capability() {
         printf("# of thread per block in this device: %d \n", deviceProp.maxThreadsPerBlock);
         printf("# of SMs in this device: %d \n", deviceProp.multiProcessorCount);
         printf("# of blcok per SMs: Unknown \n");
-        printf("# of shared Mem per block: %d bytes\n", deviceProp.sharedMemPerBlock);
+        printf("# of shared Mem per block: %ld bytes\n", deviceProp.sharedMemPerBlock);
         printf("Clock Frequency of this device: %d \n", deviceProp.clockRate);
         printf("# of threads in dimension: %d %d %d \n", deviceProp.maxGridSize[0], deviceProp.maxGridSize[1], deviceProp.maxGridSize[2]);
         printf("Warp size of this device: %d threads/warp \n", deviceProp.warpSize);
@@ -113,9 +127,12 @@ int main(int argc, char *argv[])  {
 	cudaMemcpy(dev_b, b, N*sizeof(int), cudaMemcpyHostToDevice);
 	cudaMemcpy(dev_c, c, N*sizeof(int), cudaMemcpyHostToDevice);
 
-	cudaEventCreate( &start );     // instrument code to measure start time
-	cudaEventCreate( &stop );
-	cudaEventRecord( start, 0 );
+	// cudaEventCreate( &start );     // instrument code to measure start time
+	// cudaEventCreate( &stop );
+    // cudaEventRecord( start, 0 );
+    
+    // measure start time
+    measure_start(&start, &stop);
 
     // 3
     // Kernel launch code – the device performs the actual vector addition
@@ -130,9 +147,12 @@ int main(int argc, char *argv[])  {
     // copy data from the device memory to host memory
 	cudaMemcpy(c, dev_c, N*sizeof(int), cudaMemcpyDeviceToHost);
 
-	cudaEventRecord( stop, 0 );     // instrument code to measue end time
-	cudaEventSynchronize( stop );
-	cudaEventElapsedTime( &elapsed_time_ms, start, stop );
+	// cudaEventRecord( stop, 0 );     // instrument code to measue end time
+	// cudaEventSynchronize( stop );
+    // cudaEventElapsedTime( &elapsed_time_ms, start, stop );
+    
+    // measure end time
+    measure_stop(&start, &stop, &elapsed_time_ms);
 
     // print out each addition result
 	for(int i=0;i<N;i++) {
@@ -144,9 +164,6 @@ int main(int argc, char *argv[])  {
     // struct cudaDeviceProp props;
     // cudaGetDevice(&device);                 // get current working device index
     // cudaGetDeviceProperties(&props, device);
-
-    // print out device properties
-    printf("Device(%d) Property: major(%d) minor(%d) \n", device, props.major, props.minor ); 
 
 
 	printf("Time to calculate results: %f ms.\n", elapsed_time_ms);  // print out execution time
