@@ -203,12 +203,6 @@ int main(int argc, const char *argv[])
         width = atoi(argv[3]);
         height = atoi(argv[4]);
 
-        if (width > 32 || height > 32)
-        {
-            printf("Only accommodate square	board sizes	up to 32x32.\n");
-            exit(1);
-        }
-
         printf("Running %d iterations at %d by %d pixels.\n", iters, width, height);
     }
     else

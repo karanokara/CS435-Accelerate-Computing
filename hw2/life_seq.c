@@ -7,6 +7,7 @@
 #include <string.h> // for memcpy
 #include <stdio.h>  // for printf
 #include <time.h>   // for nanosleep
+#include <sys/time.h>
 
 #define WIDTH 60
 #define HEIGHT 40
@@ -134,14 +135,30 @@ int main(int argc, const char *argv[])
     // Initialize the global "current".
     fill_board(current, width, height);
 
+    float total_elapsed_time_ms = 0.0;
+
     while (many < iters)
     {
         many++;
         if (out == 1)
             print_board(current, width, height);
 
+        struct timeval start, end;
+        double elapsedTime;
+        gettimeofday(&start, 0);
+
         //evaluate the `current` board, writing the next generation into `next`.
         step(current, next, width, height);
+
+        gettimeofday(&end, 0);
+        // timerinterval(&start, &end, &interval);
+
+        elapsedTime = (end.tv_sec - start.tv_sec) * 1000.0;    // sec to ms
+        elapsedTime += (end.tv_usec - start.tv_usec) / 1000.0; // us to ms
+
+        // *elapsed_time_ms = (((float)interval.tv_sec) + ((float)interval.tv_usec) / 1000000)) * 1000;
+        total_elapsed_time_ms += (float)elapsedTime;
+
         // Copy the next state, that step() just wrote into, to current state
         memcpy(current, next, board_size);
 
@@ -152,6 +169,9 @@ int main(int argc, const char *argv[])
         if (out == 1)
             nanosleep(&delay, &remaining);
     }
+
+    // calculate a mean time toward N iterations
+    printf("Mean time to calculate next generation of board: %f ms.\n", (total_elapsed_time_ms / iters));
 
     return 0;
 }
