@@ -105,7 +105,7 @@ __global__ void MatrixMulKernel(float *d_M, float *d_N, float *d_P, int Width)
 {
     // Created for each block
     // all threads of a block can access to the same Mds and Nds
-    __shared__ float Mds[TILE_WIDTH][TILE_WIDTH];
+    __shared__ float Mds[TILE_WIDTH][TILE_WIDTH]; // for M matrix, device_shared mem
     __shared__ float Nds[TILE_WIDTH][TILE_WIDTH];
 
     //
@@ -132,26 +132,52 @@ __global__ void MatrixMulKernel(float *d_M, float *d_N, float *d_P, int Width)
         // every thread in a block to
         // load one M element and one N element into the shared memory
         // (m * TILE_WIDTH + tx) --- offset in Matrix M
-        Mds[ty][tx] = d_M[Row * Width + (m * TILE_WIDTH + tx)];
+        Mds[ty][tx] = d_M[Row * Width + (m * TILE_WIDTH + tx)]; // M is the first operand in matrix
 
         // (m * TILE_WIDTH + ty) --- row# in Matrix N
-        Nds[ty][tx] = d_N[(m * TILE_WIDTH + ty) * Width + Col];
+        Nds[ty][tx] = d_N[(m * TILE_WIDTH + ty) * Width + Col]; // N is loading vertically
 
         // ensure the completed shared Mem is loaded for this tile, by each thread in a block, is ready
         __syncthreads();
 
         // performs one phase of dot product
-        for (int k = 0; k < TILE_WIDTH; ++k)
+        if (Row < Width && Col < Width)
         {
-            Pvalue += Mds[ty][k] * Nds[k][tx];
+            for (int k = 0; k < TILE_WIDTH; ++k)
+            {
+                Pvalue += Mds[ty][k] * Nds[k][tx];
+            }
         }
-
         // ensures that all threads have finished using the shared memory
         __syncthreads();
 
         // then move to next phase
     }
 
-    //
-    d_P[Row * Width + Col] = Pvalue;
+    // P is within matrix size
+    if (Row < Width && Col < Width)
+        d_P[Row * Width + Col] = Pvalue;
+}
+
+// with boundary check on matrix width with tile width
+for (int m = 0; m < (Width - 1) / TILE_WIDTH + 1; ++m)
+{
+    if (Row < Width && m * TILE_WIDTH + tx < Width)
+    {
+        ds_M[ty][tx] = M[Row * Width + m * TILE_WIDTH + tx];
+    }
+    else
+    {
+        ds_M[ty][tx] = 0.0;
+    }
+
+    if (m * TILE_WIDTH + ty < Width && Col < Width)
+    {
+        ds_N[ty][tx] = N[(m * TILE_WIDTH + ty) * Width + Col];
+    }
+    else
+    {
+        ds_N[ty][tx] = 0.0;
+    }
+    __syncthreads();
 }
