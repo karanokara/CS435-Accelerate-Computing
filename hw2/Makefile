@@ -15,7 +15,7 @@ all: 1 2
 	nvcc $(PROGS).cu $(DFLAGS) -o $(PROGS) 
 
 clean:
-	rm -f $(PROGS)
+	rm -f $(PROGS) $(PROGS2)
 
 zip:
-	zip kanra.zip Makefile $(PROGS).cu
+	zip kanra.zip Makefile $(PROGS).cu $(PROGS2).cu
