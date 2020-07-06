@@ -7,7 +7,6 @@
 #include <string.h> // for memcpy
 #include <stdio.h>  // for printf
 #include <time.h>   // for nanosleep
-#include <math.h>
 
 #define WIDTH 60
 #define HEIGHT 40
@@ -326,8 +325,10 @@ int main(int argc, const char *argv[])
     }
     else
     {
-        GW = ceil(width / TILE_WIDTH);
-        GH = ceil(height / TILE_WIDTH);
+        GW = width / TILE_WIDTH;
+        GH = height / TILE_WIDTH;
+        GW += 1;
+        GH += 1;
         TW = TILE_WIDTH;
         TH = TILE_WIDTH;
     }
