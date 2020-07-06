@@ -81,11 +81,18 @@ void step(int *current, int *next, int width, int height)
                 // To make the board torroidal, we use modular arithmetic to
                 // wrap neighbor coordinates around to the other side of the
                 // board if they fall off.
-                nx = (x + offsets[i][0] + width) % width;
-                ny = (y + offsets[i][1] + height) % height;
-                if (current[ny * width + nx])
+                nx = x + offsets[i][0];
+                ny = y + offsets[i][1];
+
+                if (nx >= 0 && ny >= 0 && nx < width && ny < height)
                 {
-                    num_neighbors++;
+                    nx = (nx + width) % width;
+                    ny = (ny + height) % height;
+
+                    if (current[ny * width + nx])
+                    {
+                        num_neighbors++;
+                    }
                 }
             }
 

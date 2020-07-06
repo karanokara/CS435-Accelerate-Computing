@@ -7,9 +7,11 @@
 #include <string.h> // for memcpy
 #include <stdio.h>  // for printf
 #include <time.h>   // for nanosleep
+#include <math.h>
 
 #define WIDTH 60
 #define HEIGHT 40
+#define TILE_WIDTH 16
 
 const int offsets[8][2] = {
     {-1, 1},
@@ -129,8 +131,21 @@ void step(int *current, int *next, int width, int height)
     }
 }
 
-__global__ void kernel_step(int *current, int *next, int width, int height)
+__global__ void kernel_tile_step(int *current, int *next, int width, int height)
 {
+    // Created for each block
+    // all threads of a block can access to the same Mds and Nds
+    __shared__ int shared_current[TILE_WIDTH + 2][TILE_WIDTH + 2];
+
+    // initialize to 0 in case of garbage
+    for (int i = 0; i < (TILE_WIDTH + 2); ++i)
+    {
+        for (int j = 0; j < (TILE_WIDTH + 2); ++j)
+        {
+            shared_current[i][j] = 0;
+        }
+    }
+
     int offsets[8][2] = {
         {-1, 1},
         {0, 1},
@@ -141,11 +156,17 @@ __global__ void kernel_step(int *current, int *next, int width, int height)
         {0, -1},
         {1, -1}};
 
-    // Calculate the row index of the P element and M
-    int y = blockIdx.y * blockDim.y + threadIdx.y; // "Row" in reg
+    //
+    int bx = blockIdx.x;
+    int by = blockIdx.y;
+    int tx = threadIdx.x; // within TILE_WIDTH
+    int ty = threadIdx.y; // within TILE_WIDTH
 
-    // Calculate the column index of P and N
-    int x = blockIdx.x * blockDim.x + threadIdx.x; // "Col" in reg
+    // Calculate the row index of current board
+    int y = by * blockDim.y + ty; // "Row" in reg
+
+    // Calculate the column index of current board
+    int x = bx * blockDim.x + tx; // "Col" in reg
 
     if ((y < height) && (x < width))
     {
@@ -155,6 +176,62 @@ __global__ void kernel_step(int *current, int *next, int width, int height)
         // write the next board state
         int cell_index = y * width + x;
 
+        // Coolaborative loading a tiles into shared memory
+        // load this cell data from current to share_current
+        shared_current[ty + 1][tx + 1] = current[cell_index];
+
+        // take care of edge cells of this tile
+        if (ty == 0 && y > 0)
+        {
+            // load top point
+            shared_current[ty][tx + 1] = current[(y - 1) * width + x];
+        }
+
+        if (tx == 0 && x > 0)
+        {
+            // load left point
+            shared_current[ty + 1][tx] = current[y * width + x - 1];
+        }
+
+        if ((tx + 1) == blockDim.x && (x + 1) < width)
+        {
+            // load right point
+            shared_current[ty + 1][tx + 2] = current[y * width + x + 1];
+        }
+
+        if ((ty + 1) == blockDim.y && (y + 1) < height)
+        {
+            // load bottom point
+            shared_current[ty + 2][tx + 1] = current[(y + 1) * width + x];
+        }
+
+        if (ty == 0 && tx == 0 && x > 0 && y > 0)
+        {
+            // load left top point
+            shared_current[ty][tx] = current[(y - 1) * width + x - 1];
+        }
+
+        if (ty == 0 && (tx + 1) == blockDim.x && (x + 1) < width && y > 0)
+        {
+            // load right top point
+            shared_current[ty][tx + 2] = current[(y - 1) * width + x + 1];
+        }
+
+        if (tx == 0 && x > 0 && (ty + 1) == blockDim.y && (y + 1) < height)
+        {
+            // load left bottom point
+            shared_current[ty + 2][tx] = current[(y + 1) * width + x - 1];
+        }
+
+        if (((tx + 1) == blockDim.x && (x + 1) < width) && ((ty + 1) == blockDim.y && (y + 1) < height))
+        {
+            // load right bottom point
+            shared_current[ty + 2][tx + 2] = current[(y + 1) * width + x + 1];
+        }
+
+        // wait unitl the whole tile + edge cells to load into shared mem
+        __syncthreads();
+
         // count this cell's alive neighbors
         num_neighbors = 0;
         for (i = 0; i < 8; ++i)
@@ -162,11 +239,11 @@ __global__ void kernel_step(int *current, int *next, int width, int height)
             // To make the board toroidal, we use modular arithmetic to
             // wrap neighbor coordinates around to the other side of the
             // board if they fall off.
-            nx = (x + offsets[i][0] + width) % width;
-            ny = (y + offsets[i][1] + height) % height;
+            nx = (tx + 1) + offsets[i][0]; // when out-of-bound, this whole fnc is void
+            ny = (ty + 1) + offsets[i][1];
 
             // current access 8 times
-            if (current[ny * width + nx])
+            if (shared_current[ny][nx])
             {
                 num_neighbors++;
             }
@@ -175,14 +252,15 @@ __global__ void kernel_step(int *current, int *next, int width, int height)
         // apply the Game of Life rules to the next generation cell
         // current access 1 time
         // next access 1 time
-        if ((current[cell_index] && num_neighbors == 2) || num_neighbors == 3)
+        if ((shared_current[ty + 1][tx + 1] && num_neighbors == 2) || num_neighbors == 3)
         {
             // make this cell alive
             next[cell_index] = 1;
         }
         else
         {
-            next[cell_index] = 0; // make this cell dead
+            // make this cell dead
+            next[cell_index] = 0;
         }
     }
 }
@@ -238,8 +316,24 @@ int main(int argc, const char *argv[])
     if (allocate_device_mem(&dev_next, board_size) == 0)
         exit(EXIT_FAILURE);
 
-    dim3 dimGrid(1, 1, 1);
-    dim3 dimBlock(width, height, 1);
+    int GW, GH, TW, TH;
+    if (width <= TILE_WIDTH && height <= TILE_WIDTH)
+    {
+        GW = 1;
+        GH = 1;
+        TW = width;
+        TH = height;
+    }
+    else
+    {
+        GW = ceil(width / TILE_WIDTH);
+        GH = ceil(height / TILE_WIDTH);
+        TW = TILE_WIDTH;
+        TH = TILE_WIDTH;
+    }
+
+    dim3 dimGrid(GW, GH, 1);
+    dim3 dimBlock(TW, TH, 1);
 
     // --------------------- using CUDA memory ------------------------ //
 
@@ -263,7 +357,7 @@ int main(int argc, const char *argv[])
 
         // 3
         // Kernel launch
-        kernel_step<<<dimGrid, dimBlock>>>(dev_current, dev_next, width, height);
+        kernel_tile_step<<<dimGrid, dimBlock>>>(dev_current, dev_next, width, height);
 
         // measure end time
         measure_stop(&start, &stop, &elapsed_time_ms);

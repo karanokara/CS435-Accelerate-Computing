@@ -141,10 +141,10 @@ __global__ void kernel_step(int *current, int *next, int width, int height)
         {0, -1},
         {1, -1}};
 
-    // Calculate the row index of the P element and M
+    // Calculate the row index of current board
     int y = blockIdx.y * blockDim.y + threadIdx.y; // "Row" in reg
 
-    // Calculate the column index of P and N
+    // Calculate the column index of current board
     int x = blockIdx.x * blockDim.x + threadIdx.x; // "Col" in reg
 
     if ((y < height) && (x < width))
@@ -162,13 +162,18 @@ __global__ void kernel_step(int *current, int *next, int width, int height)
             // To make the board toroidal, we use modular arithmetic to
             // wrap neighbor coordinates around to the other side of the
             // board if they fall off.
-            nx = (x + offsets[i][0] + width) % width;
-            ny = (y + offsets[i][1] + height) % height;
+            nx = x + offsets[i][0];
+            ny = y + offsets[i][1];
 
-            // current access 8 times
-            if (current[ny * width + nx])
+            if (nx >= 0 && ny >= 0 && nx < width && ny < height)
             {
-                num_neighbors++;
+                nx = (nx + width) % width;
+                ny = (ny + height) % height;
+
+                if (current[ny * width + nx])
+                {
+                    num_neighbors++;
+                }
             }
         }
 
@@ -177,8 +182,7 @@ __global__ void kernel_step(int *current, int *next, int width, int height)
         // next access 1 time
         if ((current[cell_index] && num_neighbors == 2) || num_neighbors == 3)
         {
-            // make this cell alive
-            next[cell_index] = 1;
+            next[cell_index] = 1; // make this cell alive
         }
         else
         {

@@ -4,10 +4,14 @@
 
 DFLAGS = -g -G
 PROGS = life_cuda
+PROGS2 = life_cuda_tiling
 
-all: hw2
+all: 1 2 
 
-hw2: $(PROGS).cu
+2: $(PROGS2).cu
+	nvcc $(PROGS2).cu $(DFLAGS) -o $(PROGS2) 
+
+1: $(PROGS).cu
 	nvcc $(PROGS).cu $(DFLAGS) -o $(PROGS) 
 
 clean:
