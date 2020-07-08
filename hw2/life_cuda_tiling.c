@@ -34,6 +34,9 @@ void measure_stop(cudaEvent_t *start, cudaEvent_t *stop, float *elapsed_time_ms)
     cudaEventRecord(*stop, 0); // instrument code to measue end time
     cudaEventSynchronize(*stop);
     cudaEventElapsedTime(elapsed_time_ms, *start, *stop);
+
+    cudaEventDestroy(*start);
+    cudaEventDestroy(*stop);
 }
 
 // traditional host function (C style)
@@ -377,6 +380,11 @@ int main(int argc, const char *argv[])
 
     // calculate a mean time toward N iterations
     printf("Mean time to calculate next generation of board: %f ms.\n", (total_elapsed_time_ms / iters));
+
+    // Free device vectors
+    // cudaFree(pointer to freed obj)
+    cudaFree(dev_current);
+    cudaFree(dev_next);
 
     return 0;
 }

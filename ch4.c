@@ -17,18 +17,26 @@ for (int k 5 0; k , Width; 11k)
                                                         // is 1:1
                                                         // is compute to global memory access (CGMA) ratio
 
+Registers
+    - Read/write
+    ~ 1 cycles access
 
-global memory bandwidth of 200 GB/s
+
+
+Global memory bandwidth of 200 GB/s
 peak single-precision performance is 1,500 GFLOPS
     - 4 bytes each single-precision floating-point value
     - then 200/4 = 50 GFLOPS "single-precision operands per second"
     - (CGMA) ratio = 50 : 1500 = 3.3%
+    ~ 500 cycles access
 
 
 Constant memory
     - short-latency
     - high-bandwidth
-    - read-only access by the device when all threads simultaneously access the same location
+    - Read-only access by the device when all threads simultaneously access the same location
+    ~ 5 cycles access
+
 
 Shared Memory
     - like "L1, 2,3 cache" in CPU
@@ -37,6 +45,8 @@ Shared Memory
     - higher speed than Global Mem (like DRAM using in CPU)
     - Scope: thread block
     - Lifetime: thread block
+    - Read/write
+    ~ 5 cycles access
 
 
 

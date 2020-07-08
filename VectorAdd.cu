@@ -18,6 +18,9 @@ void measure_stop(cudaEvent_t *start, cudaEvent_t *stop, float *elapsed_time_ms)
     cudaEventRecord(*stop, 0); // instrument code to measue end time
     cudaEventSynchronize(*stop);
     cudaEventElapsedTime(elapsed_time_ms, *start, *stop);
+
+    cudaEventDestroy(*start);
+    cudaEventDestroy(*stop);
 }
 
 // Compute vector sum C = A+B
@@ -174,9 +177,6 @@ int main(int argc, char *argv[])  {
 	cudaFree(dev_a);
 	cudaFree(dev_b);
 	cudaFree(dev_c);
-
-	cudaEventDestroy(start);
-	cudaEventDestroy(stop);
 
 	return 0;
 }
