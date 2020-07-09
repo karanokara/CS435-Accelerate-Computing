@@ -71,10 +71,11 @@ void print_device_capability() {
         cudaDeviceProp deviceProp;
         cudaGetDeviceProperties(&deviceProp, device);
         printf("Device(%d) has compute capability: major(%d) minor(%d).\n", device, deviceProp.major, deviceProp.minor);
-        printf("# of thread per block in this device: %d \n", deviceProp.maxThreadsPerBlock);
+        printf("# of thread per Block in this device: %d \n", deviceProp.maxThreadsPerBlock);
         printf("# of SMs in this device: %d \n", deviceProp.multiProcessorCount);
         printf("# of blcok per SMs: Unknown \n");
-        printf("# of shared Mem per block: %ld bytes\n", deviceProp.sharedMemPerBlock);
+        printf("# of shared Mem per Block: %ld bytes\n", deviceProp.sharedMemPerBlock);
+        printf("# of constant Mem per Grid: %ld bytes\n", deviceProp.totalConstMem);
         printf("Clock Frequency of this device: %d \n", deviceProp.clockRate);
         printf("# of threads in dimension: %d %d %d \n", deviceProp.maxGridSize[0], deviceProp.maxGridSize[1], deviceProp.maxGridSize[2]);
         printf("Warp size of this device: %d threads/warp \n", deviceProp.warpSize);

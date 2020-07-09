@@ -35,11 +35,13 @@ Constant memory
     - short-latency
     - high-bandwidth
     - Read-only access by the device when all threads simultaneously access the same location
+    - cache in L1 caches
     ~ 5 cycles access
 
 
-Shared Memory
+Shared Memory (Scratchpad)
     - like "L1, 2,3 cache" in CPU
+    - but doesn't need to hold a copy of data that is also in main memory (like cache in CPU)
     - used in the kernel source code
     - one in each SM
     - higher speed than Global Mem (like DRAM using in CPU)
