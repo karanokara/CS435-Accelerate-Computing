@@ -43,27 +43,6 @@ Cache coherence mechanism
 
 #define MASK_WIDTH 5
 
-__global__ void convolution_1D_basic_kernel(float *N, float *P, int Mask_Width, int Width)
-{
-    // output element index
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-
-    float Pvalue = 0;
-
-    //              0 = 2 - 5 /2
-    int N_start_point = i - (Mask_Width / 2);
-
-    for (int j = 0; j < Mask_Width; j++)
-    {
-        if (N_start_point + j >= 0 && N_start_point + j < Width)
-        {
-            Pvalue += N[N_start_point + j] * M[j]; // <-- constatn mem M is a global var, can access here
-        }
-    }
-
-    P[i] = Pvalue;
-}
-
 int main()
 {
     float h_M[] = [ 1.0, 2.0, 3.0, 4.0, 5.1 ];
@@ -79,7 +58,28 @@ int main()
     ConvolutionKernel<<<dimGrid, dimBlock>>>(Nd, Pd);
 }
 
-__global__ void convolution_1D_tile_kernel(float *N, float *P, int Mask_Width, int Width)
+__global__ void convolution_1D_basic_kernel(float *N, float *P, int Mask_Width, int Width)
+{
+    // output element index
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    float Pvalue = 0;
+
+    //              0 = 2 - 5 /2
+    int N_start_point = i - (Mask_Width / 2);
+
+    for (int j = 0; j < Mask_Width; j++)
+    {
+        if (N_start_point + j >= 0 && N_start_point + j < Width)
+        {
+            Pvalue += N[N_start_point + j] * M[j]; // <-- constant mem M is a global var, can access here
+        }
+    }
+
+    P[i] = Pvalue;
+}
+
+__global__ void convolution_1D_tiled_kernel(float *N, float *P, int Mask_Width, int Width)
 {
     // for P[6]
     // Tile 1:                               ['2' '3' 4 5 6 7 '8' '9']  will be stored in N_ds
@@ -121,7 +121,42 @@ __global__ void convolution_1D_tile_kernel(float *N, float *P, int Mask_Width, i
 
     for (intj = 0; j < Mask_Width; j++)
     {
-        Pvalue += N_ds[threadIdx.x + j] * M[j];
+        Pvalue += N_ds[threadIdx.x + j] * M[j]; // <-- constant mem M is a global var, can access here
+    }
+
+    P[i] = Pvalue;
+}
+
+__global__ void convolution_1D_tiled_general_cache_kernel(float *N, float *P, int Mask_Width, int Width)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    __shared__ float N_ds[TILE_SIZE];
+
+    N_ds[threadIdx.x] = N[i];
+
+    __syncthreads();
+
+    int This_tile_start_point = blockIdx.x * blockDim.x;
+    int Next_tile_start_point = (blockIdx.x + 1) * blockDim.x;
+    int N_start_point = i - (Mask_Width / 2);
+
+    float Pvalue = 0;
+    for (int j = 0; j < Mask_Width; j++)
+    {
+        int N_index = N_start_point + j;
+        if (N_index >= 0 && N_index < Width)
+        {
+            if ((N_index >= This_tile_start_point) && (N_index < Next_tile_start_point))
+            {
+                Pvalue += N_ds[threadIdx.x + j - (Mask_Width / 2)] * M[j];
+            }
+            else
+            {
+                // N[N_index] in general caching (L2 cache), M in constant mem
+                Pvalue += N[N_index] * M[j]; // <-- constant mem M is a global var, can access here
+            }
+        }
     }
 
     P[i] = Pvalue;
