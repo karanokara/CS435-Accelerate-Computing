@@ -38,6 +38,14 @@ Microprocessor Limit:
 
 
 
+3 ways to accelerate using GPU
+
+    Libraries                   Compiler Directives         Programming Languages
+    ---------------------------------------------------------------------------
+    "Drop-in" Acceleration      Easily accelerate           Max flexibility
+    medium performance          portable                    High performance
+Ex                              OpenACC                     CUDA
+
 
 
 

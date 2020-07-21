@@ -17,6 +17,9 @@ with a different number of execution resources.
     - SPMD: single program, multiple data
 
 
+Device (GPU device)
+    - CUDA grids
+
 Streaming multiprocessors (SMs)
     - execution resources are organized into SMs
     - many blocks in 1 SM

@@ -182,3 +182,25 @@ int main(int argc, const char *argv[])
 
     return 0;
 }
+
+// declare start, end
+// struct timeval start, end;
+// start counting
+void count_start(struct timeval *start)
+{
+    gettimeofday(start, 0);
+}
+
+// end counting
+// return elapsed time in ms
+double count_end(struct timeval *start, struct timeval *end)
+{
+    double elapsedTime;
+
+    gettimeofday(end, 0);
+
+    elapsedTime = (end->tv_sec - start->tv_sec) * 1000.0;    // sec to ms
+    elapsedTime += (end->tv_usec - start->tv_usec) / 1000.0; // us to ms
+
+    return elapsedTime;
+}
