@@ -6,34 +6,58 @@
 
 int saxpy(int N, float a, float *y, float *x)
 {
+    int b;
     for (int j = 0; j < N; ++j)
         for (int i = 0; i < N; ++i)
         {
-            y[i] = a * x[i] + y[i]; // this loop has NO Data dependency
+            b = a * x[i] + y[j]; // this loop has NO Data dependency
         }
+
+    return b;
 }
 
 int saxpy_kernels(int N, float a, float *restrict y, float *restrict x)
 {
+    int b;
+
 // Loop is parallelizable
 #pragma acc kernels
     {
+        // #pragma acc loop gang, vector(4) /* blockIdx.x threadIdx.x */
         for (int j = 0; j < N; ++j)
+            // #pragma acc loop gang, vector(32) /* blockIdx.x threadIdx.x */
             for (int i = 0; i < N; ++i)
             {
-                y[i] = a * x[i] + y[i]; // this loop has NO Data dependency
+                b = a * x[i] + y[j]; // this loop has NO Data dependency
             }
     }
 }
 
 int saxpy_parallel_loop(int N, float a, float *restrict y, float *restrict x)
 {
+    int b;
+
 // Loop is parallelizable
 #pragma acc parallel loop
     for (int j = 0; j < N; ++j)
         for (int i = 0; i < N; ++i)
         {
-            y[i] = a * x[i] + y[i]; // this loop has NO Data dependency
+            b = a * x[i] + y[j]; // this loop has NO Data dependency
+        }
+}
+
+// same compilation as above
+int saxpy_parallel_loop_loop(int N, float a, float *restrict y, float *restrict x)
+{
+    int b;
+
+// Loop is parallelizable
+#pragma acc parallel loop
+    for (int j = 0; j < N; ++j)
+#pragma acc loop
+        for (int i = 0; i < N; ++i)
+        {
+            b = a * x[i] + y[j]; // this loop has NO Data dependency
         }
 }
 
@@ -83,15 +107,19 @@ int main(int argc, char **argv)
 
     count_start(&start);
     saxpy(N, a, y_restrict_ptr, x_restrict_ptr);
-    printf("Time elapsed: %f ms.\n", count_end(&start, &end));
+    printf("Time elapsed saxpy: %f ms.\n", count_end(&start, &end));
 
     count_start(&start);
     saxpy_kernels(N, a, y_restrict_ptr, x_restrict_ptr);
-    printf("Time elapsed: %f ms.\n", count_end(&start, &end));
+    printf("Time elapsed saxpy_kernels: %f ms.\n", count_end(&start, &end));
 
     count_start(&start);
     saxpy_parallel_loop(N, a, y_restrict_ptr, x_restrict_ptr);
-    printf("Time elapsed: %f ms.\n", count_end(&start, &end));
+    printf("Time elapsed saxpy_parallel_loop: %f ms.\n", count_end(&start, &end));
+
+    count_start(&start);
+    saxpy_parallel_loop_loop(N, a, y_restrict_ptr, x_restrict_ptr);
+    printf("Time elapsed saxpy_parallel_loop_loop: %f ms.\n", count_end(&start, &end));
 
     free(x);
     free(y);

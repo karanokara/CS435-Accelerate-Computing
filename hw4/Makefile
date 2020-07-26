@@ -3,15 +3,19 @@
 
 DFLAGS = -acc -Minfo=accel
 ZIPNAME = kanra
-PROGS = openacc
+PROGS1 = DotProductOpenACC
+PROGS2 = IntegrationOpenACC
 
-all: 1
+all: 1 2
 
-1: $(PROGS).c
-	pgcc $(DFLAGS) $(PROGS).c  -o $(PROGS) 
+1: $(PROGS1).c
+	pgcc $(DFLAGS) $(PROGS1).c  -o $(PROGS1) 
+
+2: $(PROGS2).c
+	pgcc $(DFLAGS) $(PROGS2).c  -o $(PROGS2) 
 
 clean:
-	rm -f $(PROGS)
+	rm -f $(PROGS1) $(PROGS2)
 
 zip:
-	zip $(ZIPNAME).zip Makefile $(PROGS).c
+	zip $(ZIPNAME).zip Makefile $(PROGS1).c $(PROGS2).c

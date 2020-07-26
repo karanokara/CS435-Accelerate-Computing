@@ -4,7 +4,7 @@ Parallel Patterns: Convolution
     - an important parallel computation pattern 
     - used in signal processing, digital recording, image processing, 
     video processing, computer vision
-    - as a filter transforms signals and pixels into more desirable values
+    - as a filter, transforms signals and pixels into more desirable values
     - such as
         - Gaussian filters
         - filters smooth

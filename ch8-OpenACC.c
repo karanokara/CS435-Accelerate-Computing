@@ -2,10 +2,10 @@
 
 OpenACC (open accelerators)
 
-- Directive-based acceleration
+- Compiler-Directive-based acceleration
     - little code modification
     - source code can be compiled with/without acceleration
-
+    - use PGI compilers ("the Portland Group")
 
 - Usage (in source code)
     
@@ -50,6 +50,26 @@ OpenACC (open accelerators)
         - work distribution across threads
         - control flow
 
+
+
+
+- Identifying Dependencies 
+    - Flow Dependence: Read after write (RAW) (can't occur concurrently)
+            x = 10;
+            y = 2*x + 5;    // x is read here after write in last step
+
+    - Antidependence: Write after read (WAR) (can't occur concurrently)
+            y = x + 3;      // y need to read x before write
+            x++;            // x is write after y read it
+
+    - Output Dependence: Write after Write (WAW) (can't occur concurrently)
+            x = 10;
+            x = x + 1;      // x (left) is write after it is write before
+                            // x (right) is read after it is write before
+
+    - Input Dependence: Read after read (RAR) (can occur concurrently)
+            y = x + 1;
+            z = x + 2;      // x is read after it is read before
 
 
 
@@ -299,3 +319,69 @@ int Laplace_Solver_v3(int iteration)
         iteration++;
     }
 }
+
+// Fixing Dependencies in Loops
+void Fix_Dependency_in_loop(double start, int N)
+{
+    double v = start;
+    double step = 10.0;
+    double sum = 0;
+
+    // for (int i = 0; i < N; i++)      // Loop-carried Flow Dependency
+    // {
+    //     sum = sum + f(v);            // can't be executed in different thread
+    //     v = v + step;
+    // }
+
+// Define reduction to capture the sum from all threads
+#pragma acc parallel loop reduction(+ \
+                                    : sum)
+    for (int i = 0; i < N; i++)
+    {
+        v = i * step + start; // can be executed in different thread
+        sum = sum + f(v);     // sum (right) can be 0 ??
+    }
+}
+
+// 2nd example
+// Fixing Dependencies in Loops
+void Fix_Dependency_in_loop(double start, int N)
+{
+    int x[10], y[10], c[10];
+
+    // for (int i = 1; i < N; i++)      // Loop-carried Flow Dependency
+    // {
+    //     y[i] = f(x[i - 1]); // S1    // can't be executed in different thread
+    //     x[i] = x[i] + c[i]; // S2
+    // }
+
+    y[1] = f(x[0]);
+    for (int i = 1; i < N - 1; i++) // can be executed in different thread
+    {
+        x[i] = x[i] + c[i]; // old S2
+        y[i + 1] = f(x[i]); // old S1
+    }
+}
+
+// Fixing Dependencies in Loops
+void No_Fix_Dependency_in_loop(double start, int N)
+{
+    int data[10], M;
+
+    for (int i = 0; i < M; i++) // cannot be parallelized
+    {
+        if (data[i] % 2 == 0)
+        {
+            data[i] = data[M - 1];
+            M--; // limit variable change
+            i--; // loop control variable change
+        }
+    }
+
+abc:
+    for (int i = 0; i < M; i++) // cannot be parallelized
+    {
+        int a = data[i];
+        break;
+        goto abc;
+    }
