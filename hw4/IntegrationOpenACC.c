@@ -1,4 +1,9 @@
 /*
+2.	Use	OpenACC	to parallelize	the	code "integration_seq.cpp" found in the homework folder.	
+Run	your sequential	and	parallel versions and report the total execution time for each,	
+using the same input values.
+Report the obtained speedup.
+
  ============================================================================
  Author        : G. Barlas
  Version       : 1.0
@@ -13,6 +18,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <math.h>
 #include <sys/time.h>
 
 // declare start, end
@@ -70,9 +76,7 @@ double integrate_openacc(double st, double en, int div, double (*f)(double))
 {
     double localRes = 0;
     double step = (en - st) / div;
-    double x;
 
-    x = st;
     localRes = f(st) + f(en);
     localRes /= 2;
 
@@ -80,9 +84,8 @@ double integrate_openacc(double st, double en, int div, double (*f)(double))
                                     : localRes)
     for (int i = 1; i < div; i++)
     {
-        x = step * i;
-        localRes = x * x + 2 * sin(x);
-        // localRes = testf(x);
+        double x = st + step * i;
+        localRes += x * x + 2 * sin(x);
     }
 
     localRes *= step;

@@ -32,8 +32,17 @@ double count_end(struct timeval *start, struct timeval *end)
 }
 
 // perform dot product of two vectors
-int calculate(int *a, int *b, int N)
+int calculate(int N)
 {
+    int a[N], b[N];
+
+    for (int i = 0; i < N; ++i)
+    {
+        // load arrays with some numbers
+        a[i] = i;
+        b[i] = i;
+    }
+
     int sum = 0;
 
     struct timeval start, end;
@@ -50,8 +59,17 @@ int calculate(int *a, int *b, int N)
 }
 
 // perform dot product of two vectors using openacc
-int calculate_openacc_parallel(int *a, int *b, int N)
+int calculate_openacc_parallel(int N)
 {
+    int a[N], b[N];
+
+    for (int i = 0; i < N; ++i)
+    {
+        // load arrays with some numbers
+        a[i] = i;
+        b[i] = i;
+    }
+
     int sum = 0;
 
     struct timeval start, end;
@@ -70,8 +88,17 @@ int calculate_openacc_parallel(int *a, int *b, int N)
 }
 
 // perform dot product of two vectors using openacc
-int calculate_openacc_kernel(int *a, int *b, int N)
+int calculate_openacc_kernel(int N)
 {
+    int a[N], b[N];
+
+    for (int i = 0; i < N; ++i)
+    {
+        // load arrays with some numbers
+        a[i] = i;
+        b[i] = i;
+    }
+
     int sum = 0;
 
     struct timeval start, end;
@@ -101,18 +128,9 @@ int main(int argc, char *argv[])
 
     printf("Size of array = %d\n", N);
 
-    int a[N], b[N];
-
-    for (int i = 0; i < N; ++i)
-    {
-        // load arrays with some numbers
-        a[i] = i;
-        b[i] = i;
-    }
-
-    calculate(a, b, N);
-    // calculate_openacc_kernel(a, b, N);
-    calculate_openacc_parallel(a, b, N);
+    calculate(N);
+    calculate_openacc_kernel(N);
+    calculate_openacc_parallel(N);
 
     return 0;
 }
