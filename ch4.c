@@ -23,8 +23,9 @@ Registers
 
 
 
-Global memory bandwidth of 200 GB/s
-peak single-precision performance is 1,500 GFLOPS
+Global memory (is DRAMs) 
+    - bandwidth of 200 GB/s
+    - peak single-precision performance is 1,500 GFLOPS
     - 4 bytes each single-precision floating-point value
     - then 200/4 = 50 GFLOPS "single-precision operands per second"
     - (CGMA) ratio = 50 : 1500 = 3.3%

@@ -9,6 +9,7 @@
 #include <time.h>   // for nanosleep
 #include <sys/time.h>
 
+// 1. Rewrite this code as a single loop nest
 int main()
 {
     int a[n][m], b[n][m], c[n][m];
@@ -35,21 +36,23 @@ int main()
     init(a, b, n, m);
 
 #pragma acc kernels
-    for (int j = 0; j < n; ++j)
     {
-        for (int k = 0; k < m; ++k)
-        {
-            c[j][k] = a[j][k];
-            a[j][k] = c[j][k] + b[j][k];
-        }
-    }
 
-#pragma acc kernels
-    for (int j = 0; j < n; ++j)
-    {
-        for (int k = 0; k < m; ++k)
+        for (int j = 0; j < n; ++j)
         {
-            d[j][k] = a[j][k] - 5;
+            for (int k = 0; k < m; ++k)
+            {
+                c[j][k] = a[j][k];
+                a[j][k] = c[j][k] + b[j][k];
+            }
+        }
+
+        for (int j = 0; j < n; ++j)
+        {
+            for (int k = 0; k < m; ++k)
+            {
+                d[j][k] = a[j][k] - 5;
+            }
         }
     }
 }

@@ -22,10 +22,12 @@ OpenACC (open accelerators)
             2. parallel
                 - #pragma acc parallel
                 - tell compiler to parallelize the code
+                - parallelize everything
 
             3. loop
                 - #pragma acc loop
                 - Tells compiler there are no dependencies in this loop, it can be parallelized
+                - separate the loop
 
             4. routine
                 - #pragma acc routine

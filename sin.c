@@ -35,6 +35,9 @@ long double power_fun(double x, int y)
     return sum;
 }
 
+/*
+Using taylor series
+*/
 double sin_fun(double z)
 {
     int i = 1;

@@ -32,7 +32,9 @@ Streaming multiprocessors (SMs)
 Thread scheduling
     - a block is assigned to a SM, is divided into many 32-thread units called warps
     - a warp is a collection of threads
-    - Warps are scheduling units in SM
+    - Warps are scheduling units in SM (executed as a unit)
+    - if a block is not a multiple of 32
+        - The warp will be padded with extra threads to complete a 32-thread warp
     - Blocks are partitioned into warps for thread scheduling.
     - one instruction is fetched and executed for all threads in a warp
     - At any time, 1 or 2 of the warps is executed by a SM
@@ -45,7 +47,7 @@ Thread scheduling
         - Avoid Branching divergence such as:
         - If (threadIdx.x > 2) { }
             - thread 0, 1, 2 in warp#1 have different path with thread 3, 4, .. 31 in warp#1
-
+        - Cost: extra pass the hardware needs to take to allow the threads in a warp to make their own decision
 
 Latency tolerance or latency hiding
     - filling the latency time of operations with work from other threads
