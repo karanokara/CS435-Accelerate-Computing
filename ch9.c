@@ -17,16 +17,23 @@ Chapter 5 in book: Global Memory (DRAM) Bandwidth
         ...
 
 
+- Adding a GPU to a CPU-based system is like adding roughly one or two sockets (cores of CPU) 
+of performance
+
+
+- GPU issues
+    a. overhead from necessary GPU-specific data structure reorganization and host-to-GPU copies
+    b. variable workloads, from irregular parallelism, and irregular memory access patterns
 
 
 
 
 
-
-
-
-
-
+nvprof:
+Uh, CopyHostToDevice
+CopyDeviceToHost
+Malloc
+cuLaunchKernel
 
 
 */

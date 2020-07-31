@@ -21,14 +21,14 @@ const int offsets[8][2] = {
     {0, -1},
     {1, -1}};
 
-void measure_start(cudaEvent_t *start, cudaEvent_t *stop)
+void cuda_measure_start(cudaEvent_t *start, cudaEvent_t *stop)
 {
     cudaEventCreate(start);
     cudaEventCreate(stop);
     cudaEventRecord(*start, 0);
 }
 
-void measure_stop(cudaEvent_t *start, cudaEvent_t *stop, float *elapsed_time_ms)
+void cuda_measure_stop(cudaEvent_t *start, cudaEvent_t *stop, float *elapsed_time_ms)
 {
     cudaEventRecord(*stop, 0); // instrument code to measue end time
     cudaEventSynchronize(*stop);
@@ -272,14 +272,14 @@ int main(int argc, const char *argv[])
         cudaMemcpy(dev_current, current, board_size, cudaMemcpyHostToDevice);
 
         // measure start time
-        measure_start(&start, &stop);
+        cuda_measure_start(&start, &stop);
 
         // 3
         // Kernel launch
         kernel_step<<<dimGrid, dimBlock>>>(dev_current, dev_next, width, height);
 
         // measure end time
-        measure_stop(&start, &stop, &elapsed_time_ms);
+        cuda_measure_stop(&start, &stop, &elapsed_time_ms);
 
         // 4
         // copy data from the device memory to host memory

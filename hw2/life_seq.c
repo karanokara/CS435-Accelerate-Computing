@@ -199,8 +199,8 @@ double count_end(struct timeval *start, struct timeval *end)
 
     gettimeofday(end, 0);
 
-    elapsedTime = (end->tv_sec - start->tv_sec) * 1000.0;    // sec to ms
-    elapsedTime += (end->tv_usec - start->tv_usec) / 1000.0; // us to ms
+    elapsedTime = (end->tv_sec - start->tv_sec) * 1000.0;    // sec difference to ms
+    elapsedTime += (end->tv_usec - start->tv_usec) / 1000.0; // us difference to ms
 
     return elapsedTime;
 }

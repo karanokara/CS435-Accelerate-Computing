@@ -5,6 +5,22 @@
 #include <sys/time.h>
 #include <driver_types.h>
 
+void cuda_measure_start(cudaEvent_t *start, cudaEvent_t *stop)
+{
+    cudaEventCreate(start);
+    cudaEventCreate(stop);
+    cudaEventRecord(*start, 0);
+}
+
+void cuda_measure_stop(cudaEvent_t *start, cudaEvent_t *stop, float *elapsed_time_ms)
+{
+    cudaEventRecord(*stop, 0); // instrument code to measue end time
+    cudaEventSynchronize(*stop);
+    cudaEventElapsedTime(elapsed_time_ms, *start, *stop);
+
+    cudaEventDestroy(*start);
+    cudaEventDestroy(*stop);
+}
 
 // Compute vector multiplication C = A x B
 // Each thread performs one pair-wise addition
@@ -83,12 +99,10 @@ int perform_on_device(int *a, int *b, int *c, int N, int B, int T, float *elapse
 
 	cudaMemcpy(dev_a, a , N*sizeof(int),cudaMemcpyHostToDevice);
 	cudaMemcpy(dev_b, b , N*sizeof(int),cudaMemcpyHostToDevice);
-	cudaMemcpy(dev_c, c , N*sizeof(int),cudaMemcpyHostToDevice);
+	// cudaMemcpy(dev_c, c , N*sizeof(int),cudaMemcpyHostToDevice);
 
-    // instrument code to measure start time
-    cudaEventCreate( &start );     
-	cudaEventCreate( &stop );
-	cudaEventRecord( start, 0 );
+    // measure start time
+    cuda_measure_start(&start, &stop);
 
     // 2
     // Kernel launch code – the device performs the actual vector addition
@@ -98,18 +112,16 @@ int perform_on_device(int *a, int *b, int *c, int N, int B, int T, float *elapse
     // copy C from the device memory
     cudaMemcpy(c,dev_c,N*sizeof(int),cudaMemcpyDeviceToHost);
     
-    // instrument code to measue end time
-	cudaEventRecord( stop, 0 );     
-	cudaEventSynchronize( stop );
-	cudaEventElapsedTime( elapsed_time_ms, start, stop );
+    // measure end time
+    cuda_measure_stop(&start, &stop, elapsed_time_ms);
 
 	// Free device vectors
 	cudaFree(dev_a);
 	cudaFree(dev_b);
 	cudaFree(dev_c);
 
-	cudaEventDestroy(start);
-    cudaEventDestroy(stop);
+	// cudaEventDestroy(start);
+    // cudaEventDestroy(stop);
     
     return 1;
 }
@@ -147,6 +159,22 @@ void perform_on_host(int *a, int *b, int *c, int N, float *elapsed_time_ms ) {
 	// cudaEventElapsedTime( elapsed_time_ms, start, stop );
 }
 
+/*
+Run:
+./VectorVectorMultiplication
+
+vector size: 100000
+block: 128
+blocks per grid: 1000
+
+Using CPU:
+   sum of product: 216474736
+   time to calculate product: 0.646000 ms.
+Using GPU:
+   sum of product: 216474736
+   time to calculate product: 0.243936 ms.
+
+*/
 int main(int argc, char *argv[])  {
     int T = 0;
     int B = 0;      // threads per block and blocks per grid
