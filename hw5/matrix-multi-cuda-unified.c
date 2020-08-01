@@ -1,5 +1,5 @@
 /*
-Perform matrix multiplication on 2 2-D matrices using CUDA non-tiled
+Perform matrix multiplication on 2 2-D matrices using CUDA non-tiled, unified memory
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,8 +22,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    int *H_A, *H_B, *H_C;
-    int *D_A, *D_B, *D_C;
+    int *A, *B, *C; // to be allocated in Unified Memory access by both CPU and GPU
     int width = atoi(argv[1]);
     int grid_width = atoi(argv[2]);
     int block_width = atoi(argv[3]);
@@ -41,16 +40,16 @@ int main(int argc, char *argv[])
 
     printf("Perform Matrix Multiplication on [%d x %d] x [%d x %d]\n", width, width, width, width);
 
-    // dynamically allocate mem
-    H_A = (int *)malloc(size);
-    H_B = (int *)malloc(size);
-    H_C = (int *)malloc(size);
+    // Allocate Unified Memory, accessible from CPU or GPU
+    cudaMallocManaged(&A, size);
+    cudaMallocManaged(&B, size);
+    cudaMallocManaged(&C, size);
 
     // initialize matrix A and B on the host
     for (int i = 0; i < N; ++i)
     {
-        H_A[i] = MA_value;
-        H_B[i] = MB_value;
+        A[i] = MA_value;
+        B[i] = MB_value;
     }
 
     dim3 dim_grid(grid_width, grid_width, 1);
@@ -61,26 +60,26 @@ int main(int argc, char *argv[])
     cuda_measure_start(&start, &stop);
     // ------------------------- start timing --------------------------- //
 
-    // Allocate device memory and copy to device
-    cudaMalloc((void **)&D_A, size);
-    cudaMemcpy(D_A, H_A, size, cudaMemcpyHostToDevice);
-    cudaMalloc((void **)&D_B, size);
-    cudaMemcpy(D_B, H_B, size, cudaMemcpyHostToDevice);
-    cudaMalloc((void **)&D_C, size);
+    // Prefetch the data to the GPU
+    // move the data to the GPU after initializing it
+    // only have effect on Pascal GPU that supports hardware page faulting and migration.
+    int device = -1;
+    cudaGetDevice(&device);
+    cudaMemPrefetchAsync(A, size, device, NULL);
+    cudaMemPrefetchAsync(B, size, device, NULL);
+    cudaMemPrefetchAsync(C, size, device, NULL);
 
     // CUDA kernel execution
-    matrix_multi_kernel<<<dim_grid, dim_block>>>(D_A, D_B, D_C, width);
-
-    // Copy 2d array from device back to host
-    cudaMemcpy(H_C, D_C, size, cudaMemcpyDeviceToHost);
+    matrix_multi_kernel<<<dim_grid, dim_block>>>(A, B, C, width);
 
     // Wait for GPU to finish before accessing on host
+    // CPU may read invalid data (on Pascal and later), or get a segmentation fault (on pre-Pascal GPUs)
     cudaDeviceSynchronize();
 
     // ------------------------- end timing --------------------------- //
     cuda_measure_stop(&start, &stop, &elapsed_time_ms);
 
-    printf("Using CUDA:\n    time to calculate: %f ms.\n", elapsed_time_ms);
+    printf("Using CUDA (with Unified Mem):\n    time to calculate: %f ms.\n", elapsed_time_ms);
 
     // Check for errors (all values should be 3.0f)
     printf("Checking for error...\n");
@@ -90,18 +89,15 @@ int main(int argc, char *argv[])
     {
         for (int j = 0; j < width; j++)
         {
-            max_error = fmax(max_error, abs(H_C[i * width + j] - target_value));
+            max_error = fmax(max_error, abs(C[i * width + j] - target_value));
         }
     }
     printf("Max error: %d \n\n", max_error);
 
     // Free memory
-    free(H_A);
-    free(H_B);
-    free(H_C);
-    cudaFree(D_A);
-    cudaFree(D_B);
-    cudaFree(D_C);
+    cudaFree(A);
+    cudaFree(B);
+    cudaFree(C);
 
     return 0;
 }

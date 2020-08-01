@@ -9,14 +9,10 @@ Perform matrix multiplication on 2 2-D matrices using CPU
 
 void count_start(struct timeval *start);
 double count_end(struct timeval *start, struct timeval *end);
+void matrix_multi(int **MA, int **MB, int **MC, int width);
 
 int main(int argc, char **argv)
 {
-    int aa = fmax(99, 88);
-    int ab = abs(-6);
-    printf("fmax (99, 88) = %d\n", aa);
-    printf("abc (-6) = %d\n", ab);
-
     if (argc != 2)
     {
         printf("Usage:\n%s matrix-width\n", argv[0]);
@@ -26,7 +22,6 @@ int main(int argc, char **argv)
     //dimension vars
     int width = atoi(argv[1]);
     int **MA, **MB, **MC;
-    int dot_product = 0; // temp dot product
     int MA_value = 3;
     int MB_value = 2;
 
@@ -53,20 +48,7 @@ int main(int argc, char **argv)
     struct timeval start, end;
     count_start(&start);
 
-    for (int i = 0; i < width; i++)
-    {
-        for (int j = 0; j < width; j++)
-        {
-            // for each dot product in C
-            for (int k = 0; k < width; k++)
-            {
-                // row from A x col from B
-                dot_product += MA[i][k] * MB[k][j];
-            }
-            MC[i][j] = dot_product;
-            dot_product = 0;
-        }
-    }
+    matrix_multi(MA, MB, MC, width);
     // --------------------------------- end timing --------------------------- //
 
     printf("Using CPU:\n   time to calculate: %f ms.\n", count_end(&start, &end));
@@ -84,7 +66,34 @@ int main(int argc, char **argv)
     }
     printf("Max error: %d \n\n", max_error);
 
+    free(MA);
+    free(MB);
+    free(MC);
+
     return 0;
+}
+
+/**
+ * perform matrix multiplication using CPU
+ */
+void matrix_multi(int **MA, int **MB, int **MC, int width)
+{
+    int dot_product = 0; // temp dot product
+
+    for (int i = 0; i < width; i++)
+    {
+        for (int j = 0; j < width; j++)
+        {
+            // for each dot product in C
+            for (int k = 0; k < width; k++)
+            {
+                // row from A x col from B
+                dot_product += MA[i][k] * MB[k][j];
+            }
+            MC[i][j] = dot_product;
+            dot_product = 0;
+        }
+    }
 }
 
 // start counting

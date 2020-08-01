@@ -3,7 +3,7 @@
 CUDA Memories
 
 
-global memory, implemented with dynamic random access memory (DRAM) not faster enought than 
+global memory, implemented with dynamic random access memory (DRAM) not faster enough than 
 cache memory (shared memory in chip)
 
 
@@ -20,7 +20,6 @@ for (int k 5 0; k , Width; 11k)
 Registers
     - Read/write
     ~ 1 cycles access
-
 
 
 Global memory (is DRAMs) 
@@ -51,6 +50,26 @@ Shared Memory (Scratchpad)
     - Read/write
     ~ 5 cycles access
 
+
+Unified Memory
+    - a single memory address space, accessible from any processor (CPU or GPU) in a system
+    - calls to cudaMallocManaged(), assign mem to a pointer accessible from any processor
+
+        cudaError_t cudaMallocManaged(void** ptr, size_t size);
+
+    - the CUDA system software/hardware takes care of migrating memory pages to the memory 
+    of the accessing processor
+    - with virtual memory page faulting and migration (on-demand page migration)
+    - system can migrate pages on demand from anywhere to the GPU's memory for efficient processing
+    - page faulting means that only the pages, kernel to accesses, need to be migrated
+        - memory migration overhead 
+
+    - Pre-Pascal GPU
+        - potentially migration overhead on each kernel launch (Host To Device, Device To Host )
+            - must migrate all pages to host memory or to another GPU 
+    - Pascal GPU
+        - No migration overhead
+            - page faulting, then Page Migration Engine migrates the pages to the device
 
 
 CUDA Variable Type Qualifiers:
