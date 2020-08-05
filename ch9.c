@@ -38,15 +38,3 @@ Profiling:
 
 
 */
-
-// 70 / 12 = 5.8 = 5
-// 70 + 12 - 1 / 12 = 81 / 12 = 6.7 = 6
-// 60 / 12 = 5
-// (60 + 12 - 1) / 12 = 71 / 12 = 5.9 = 5
-int get_number_of_block(int N, int blockSize)
-{
-    int N = 70;
-    int blockSize = 12; // need 6 blocks
-    int numBlocks = (N + blockSize - 1) / blockSize;
-    return numBlocks;
-}
