@@ -47,7 +47,11 @@ Microprocessor Limit:
 Ex                              OpenACC                     CUDA
 
 
+SIMP: single instruction, multiple data
 
+    1 + 2 = 3       1   2 = 3
+    4 + 5 = 9   ==> 4 + 5 = 9
+    5 + 3 = 8       5   3 = 8
 
 
 */

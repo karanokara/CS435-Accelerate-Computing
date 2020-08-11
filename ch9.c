@@ -28,13 +28,8 @@ of performance
 
 
 
-Profiling:
-    nvprof ./executable
-
-    Uh, CopyHostToDevice
-    CopyDeviceToHost
-    Malloc
-    cuLaunchKernel
+Profiling (code that use GPU):
+    nvprof ./cuda_executable
 
 
 */
