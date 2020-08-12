@@ -1,7 +1,7 @@
 /* 
 Game of Life using OpenACC
 
-OpenACC CPU version, designed to use only the multicore CPU
+OpenACC GPU version, designed to use GPU
 
 Only use #pragma acc loop seq
 */
@@ -66,7 +66,7 @@ void step(int *restrict current, int *restrict next, int width, int height)
     int size = width * height;
 
     // write the next board state
-#pragma acc parallel loop copyin(current[:size]), copy(next[:size])
+#pragma acc parallel loop copyin(current[:size]), copyout(next[:size])
     for (y = 0; y < height; y++)
     {
         for (x = 0; x < width; x++)
