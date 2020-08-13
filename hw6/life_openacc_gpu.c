@@ -66,41 +66,47 @@ void step(int *restrict current, int *restrict next, int width, int height)
     int size = width * height;
 
     // write the next board state
-#pragma acc parallel loop copyin(current[:size]), copyout(next[:size])
-    for (y = 0; y < height; y++)
+#pragma acc data copyin(current[:size]), copyout(next[:size])
+#pragma acc data present(current[:size], next[:size]) // this can be ignored
     {
-        for (x = 0; x < width; x++)
+#pragma acc kernels // using "parallel loop" here cannot make 3 loops to be parallelizable, why??
+        for (y = 0; y < height; y++)
         {
-            // count this cell's alive neighbors
-            int num_neighbors = 0;
-            for (i = 0; i < 8; i++)
+            // #pragma acc parallel loop
+            for (x = 0; x < width; x++)
             {
-                // To make the board torroidal, we use modular arithmetic to
-                // wrap neighbor coordinates around to the other side of the
-                // board if they fall off.
-                nx = x + offsets[i][0];
-                ny = y + offsets[i][1];
-
-                if (nx >= 0 && ny >= 0 && nx < width && ny < height)
+                // count this cell's alive neighbors
+                int num_neighbors = 0;
+                // #pragma acc parallel loop reduction(+: num_neighbors)
+                for (i = 0; i < 8; i++)
                 {
-                    nx = (nx + width) % width;
-                    ny = (ny + height) % height;
+                    // To make the board torroidal, we use modular arithmetic to
+                    // wrap neighbor coordinates around to the other side of the
+                    // board if they fall off.
+                    nx = x + offsets[i][0];
+                    ny = y + offsets[i][1];
 
-                    if (current[ny * width + nx])
+                    if (nx >= 0 && ny >= 0 && nx < width && ny < height)
                     {
-                        num_neighbors += 1; // changed from ++var to var += 1, compiled result changed??
+                        nx = (nx + width) % width;
+                        ny = (ny + height) % height;
+
+                        if (current[ny * width + nx])
+                        {
+                            num_neighbors += 1; // changed from ++var to var += 1, compiled result changed??
+                        }
                     }
                 }
-            }
 
-            // apply the Game of Life rules to this cell
-            if ((current[y * width + x] && num_neighbors == 2) || num_neighbors == 3)
-            {
-                next[y * width + x] = 1;
-            }
-            else
-            {
-                next[y * width + x] = 0;
+                // apply the Game of Life rules to this cell
+                if ((current[y * width + x] && num_neighbors == 2) || num_neighbors == 3)
+                {
+                    next[y * width + x] = 1;
+                }
+                else
+                {
+                    next[y * width + x] = 0;
+                }
             }
         }
     }

@@ -73,4 +73,8 @@ int main(int argc, char *argv[])
 
     printf("sin_fun( %f ) = %f \n", x, sin_fun(x));
     printf("sin( %f ) = %f \n", x, sin(x));
+
+    printf("famx(5, 7) = %f", fmax(5, 7)); // need <math.h>
+    printf("\nabs(5) = %d", abs(5));       // need <math.h>
+    printf("\nabs(-5) = %d", abs(-5));     // need <math.h>
 }
